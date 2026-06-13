@@ -5,6 +5,7 @@ import { SelectedWorkClient } from "@/components/selected-work-client"
 
 export async function generateStaticParams() {
   const content = await getPortfolioContent()
+  if (!content) return []
   return content.selectedWork.items.map((item) => ({
     slug: item.slug,
   }))
@@ -16,6 +17,7 @@ export default async function SelectedWorkPage({
   params: Promise<{ slug: string }>
 }) {
   const content = await getPortfolioContent()
+  if (!content) notFound()
   const { slug } = await params
   const work = content.selectedWork.items.find((item) => item.slug === slug)
 

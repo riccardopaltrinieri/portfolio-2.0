@@ -5,9 +5,11 @@ import { ArrowLeft, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SelectedWorkCard } from "@/components/selected-work-card"
 import { getPortfolioContent } from "@/lib/portfolio-content"
+import { notFound } from "next/navigation"
 
 export default async function SelectedWorkIndexPage() {
   const content = await getPortfolioContent()
+  if (!content) notFound()
 
   return (
     <main className="min-h-screen bg-background">
