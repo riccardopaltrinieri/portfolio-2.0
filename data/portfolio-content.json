@@ -1,0 +1,223 @@
+{
+  "site": {
+    "name": "Riccardo Paltrinieri",
+    "role": "Software Engineer focused on backend systems, product engineering, and scalable web applications",
+    "resumeLabel": "Resume",
+    "resumeUrl": "#",
+    "githubUrl": "https://github.com/riccardopaltrinieri",
+    "linkedinUrl": "https://www.linkedin.com/in/riccardo-paltrinieri/"
+  },
+  "nav": [
+    {
+      "label": "About",
+      "href": "#about"
+    },
+    {
+      "label": "Skills",
+      "href": "#skills"
+    },
+    {
+      "label": "Projects",
+      "href": "#projects"
+    },
+    {
+      "label": "Contact",
+      "href": "#contact"
+    }
+  ],
+  "hero": {
+    "headline": "Hi, I'm Rick",
+    "primaryCta": "View My Work",
+    "secondaryCta": "Get In Touch"
+  },
+  "about": {
+    "title": "About Me",
+    "paragraphs": [
+      "I'm a software engineer with 5+ years of experience building backend systems, web applications, internal tools, and product-facing features across fintech and B2B SaaS. ciao",
+      "I’ve worked in startups and scaleups across Amsterdam, Barcelona, and Berlin, contributing to systems involving onboarding, KYC/KYB, document automation, public administration integrations, billing, microservices, and event-driven architecture.",
+      "I care about simple, well-designed software, strong product ownership, and solving real business problems without overengineering. I enjoy working across backend, frontend, architecture, and developer experience. ciao"
+    ],
+    "image": {
+      "src": "/pic.png?height=256&width=256",
+      "alt": "Riccardo Paltrinieri"
+    },
+    "experienceTitle": "Work Experience",
+    "experience": [
+      {
+        "role": "Software Engineer",
+        "company": "Nimbus",
+        "period": "2025 - Present",
+        "description": "Building backend services for an AI B2B SaaS startup in Berlin, including microservices, event-driven architecture, billing systems, Stripe integration, and platform engineering."
+      },
+      {
+        "role": "Software Engineer",
+        "company": "Bankflip",
+        "period": "2024 - 2025",
+        "description": "Built fintech automation systems, document intelligence features, public administration integrations, and internal tools using TypeScript, MongoDB, React, Python, and scraping/reverse engineering techniques."
+      },
+      {
+        "role": "Backend Developer",
+        "company": "bunq",
+        "period": "2021 - 2024",
+        "description": "Worked on banking backend systems including onboarding, KYC/KYB, identity verification, compliance reporting, billing, and automation using PHP, SQL, Redis, AWS, and internal tooling."
+      }
+    ]
+  },
+  "skills": {
+    "title": "My Skills",
+    "groups": [
+      {
+        "title": "AI tools",
+        "skills": [
+          "OpenAI SDK",
+          "Claude Agent SDK",
+          "Pydantic AI",
+          "Deepgram STT",
+          "Eleven Labs Voices"
+        ]
+      },
+      {
+        "title": "Backend",
+        "skills": [
+          "Python",
+          "Node.js",
+          "TypeScript",
+          "PHP",
+          "REST APIs",
+          "Microservices"
+        ]
+      },
+      {
+        "title": "Frontend",
+        "skills": [
+          "React",
+          "Next.js",
+          "TypeScript",
+          "Tailwind CSS"
+        ]
+      },
+      {
+        "title": "Databases",
+        "skills": [
+          "MongoDB",
+          "SQL",
+          "PostgreSQL",
+          "Redis",
+          "Firestore"
+        ]
+      },
+      {
+        "title": "Architecture",
+        "skills": [
+          "Event-Driven Architecture",
+          "Domain-Driven Design",
+          "Kafka",
+          "Hexagonal Architecture"
+        ]
+      },
+      {
+        "title": "Cloud & DevOps",
+        "skills": [
+          "Google Cloud Run",
+          "Google Cloud Scheduler",
+          "Docker",
+          "AWS",
+          "OTel",
+          "Prometheus",
+          "CI/CD"
+        ]
+      },
+      {
+        "title": "Product & Engineering",
+        "skills": [
+          "Product Ownership",
+          "Technical Design",
+          "Mentoring",
+          "Developer Experience"
+        ]
+      },
+      {
+        "title": "Integrations",
+        "skills": [
+          "Stripe",
+          "Slack API",
+          "Gemini API",
+          "Public Administration APIs",
+          "Web Scraping"
+        ]
+      }
+    ]
+  },
+  "selectedWork": {
+    "title": "Selected Work",
+    "items": [
+      {
+        "slug": "billing-microservice-ai-saas-platform",
+        "title": "Designing a Billing Microservice for an AI SaaS Platform",
+        "summary": "From zero to a production-ready billing domain: subscriptions, credits, Stripe integration, domain events, and failure-safe webhook handling.",
+        "impact": "Enabled usage-based monetization and clearer separation between product, billing, and platform concerns.",
+        "tags": [
+          "Python",
+          "Stripe",
+          "MongoDB",
+          "Kafka",
+          "DDD"
+        ],
+        "overview": "Built the billing backbone for an AI SaaS platform, designing how usage, plans, credits, and payment events interact without tightly coupling the product to Stripe-specific workflows.",
+        "challenge": "The main problem was keeping billing reliable while still supporting frequent product changes, usage-based pricing, and webhook-driven updates from external systems.",
+        "approach": "Modeled billing as its own domain, introduced domain events around payments and subscription state, and made webhook processing idempotent and failure-tolerant.",
+        "outcomes": [
+          "Supported subscription and credit-based monetization.",
+          "Separated billing concerns from product logic.",
+          "Reduced the blast radius of payment webhook failures."
+        ]
+      },
+      {
+        "slug": "automating-banking-operations-at-scale",
+        "title": "Automating Banking Operations at Scale",
+        "summary": "Built backend systems for onboarding, identity verification, compliance reporting, and internal automation in a European digital bank.",
+        "impact": "Reduced manual operational work and supported regulated banking workflows across multiple countries.",
+        "tags": [
+          "PHP",
+          "SQL",
+          "Redis",
+          "AWS",
+          "Fintech"
+        ],
+        "overview": "Worked on backend systems that supported regulated banking operations end to end, from onboarding and identity verification to reporting and internal automations.",
+        "challenge": "Banking workflows had to be reliable, auditable, and adaptable to changing compliance requirements across multiple regions.",
+        "approach": "Focused on clear domain boundaries, operational tooling, and automation that reduced repeated manual work while keeping data flows traceable.",
+        "outcomes": [
+          "Streamlined onboarding and verification flows.",
+          "Reduced manual effort in operational teams.",
+          "Improved support for compliance-sensitive processes."
+        ]
+      },
+      {
+        "slug": "document-automation-for-fintech",
+        "title": "Building Document Automation Systems for Fintech",
+        "summary": "Implemented systems for parsing financial documents, integrating external portals, and turning unstructured data into usable product workflows.",
+        "impact": "Helped automate manual financial processes and improve product capabilities around document intelligence.",
+        "tags": [
+          "TypeScript",
+          "Python",
+          "React",
+          "MongoDB"
+        ],
+        "overview": "Created software that turns documents and external portal data into structured product workflows for fintech use cases.",
+        "challenge": "The inputs were inconsistent and often unstructured, which made reliable parsing and workflow automation the main technical challenge.",
+        "approach": "Combined parsing, backend automation, and product-facing interfaces so users could review and act on extracted data quickly.",
+        "outcomes": [
+          "Automated document-heavy workflows.",
+          "Made external portal data usable inside product flows.",
+          "Reduced time spent on repetitive manual processing."
+        ]
+      }
+    ]
+  },
+  "contact": {
+    "title": "Get In Touch",
+    "body": "I'm open to interesting software engineering opportunities, especially around backend systems, product engineering, fintech, AI, and high-impact startup environments.",
+    "email": "riccardo@paltrinieri.it"
+  }
+}
