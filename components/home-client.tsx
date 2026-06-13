@@ -3,6 +3,8 @@
 import Link from "next/link"
 import * as React from "react"
 import { ArrowRight, CalendarDays, Edit3, Github, Linkedin, Lock, Mail, PencilLine, Save, Sparkles } from "lucide-react"
+import { useChat } from "@ai-sdk/react"
+import { DefaultChatTransport } from "ai"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -156,13 +158,15 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
             editable={editable}
             value={content.hero.headline}
             onSave={(headline) => saveContent({ ...content, hero: { ...content.hero, headline } })}
-            render={(value) => <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4">{value}</h1>}
+            align="center"
+            render={(value) => <h1 className="mb-4 text-4xl font-bold tracking-tighter md:text-6xl">{value}</h1>}
           />
           <EditableField
             editable={editable}
             value={content.site.role}
             onSave={(role) => saveContent({ ...content, site: { ...content.site, role } })}
-            render={(value) => <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-[700px]">{value}</p>}
+            align="center"
+            render={(value) => <p className="mb-8 max-w-[700px] text-xl text-muted-foreground md:text-2xl">{value}</p>}
           />
           <div className="flex flex-col sm:flex-row gap-4">
             <Button size="lg" asChild>
@@ -173,6 +177,9 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
             <Button size="lg" variant="outline" asChild>
               <Link href="#contact">{content.hero.secondaryCta}</Link>
             </Button>
+          </div>
+          <div className="mt-10 w-full max-w-2xl">
+            <ChatAssistant />
           </div>
         </section>
 
@@ -355,18 +362,81 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
   )
 }
 
+function ChatAssistant() {
+  const { messages, setMessages, sendMessage, status, error } = useChat({
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
+  })
+  const [draft, setDraft] = React.useState("")
+  const listRef = React.useRef<HTMLDivElement | null>(null)
+  const seededRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (seededRef.current) return
+    seededRef.current = true
+    setMessages((current) => current ?? [])
+  }, [setMessages])
+
+  React.useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" })
+  }, [messages])
+
+  return (
+    <div className="text-left">
+      <div ref={listRef} className="max-h-72 space-y-3 overflow-y-auto">
+        {messages.map((message: { parts: any[]; id: React.Key | null | undefined; role: string }) => {
+          const text = message.parts
+            .map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
+            .join("")
+            .trim()
+
+          return (
+            <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[85%]" : "max-w-[85%]"}>
+              <div className={[message.role === "user" ? "bg-foreground text-background" : "bg-transparent text-foreground", "rounded-2xl px-3 py-2 text-sm leading-6"].join(" ")}>
+                {text}
+              </div>
+            </div>
+          )
+        })}
+        {error ? <p className="text-sm text-destructive">Chat is unavailable right now.</p> : null}
+      </div>
+      <form
+        className="mt-4 flex gap-2"
+        onSubmit={async (event) => {
+          event.preventDefault()
+          const message = draft.trim()
+          if (!message) return
+          setDraft("")
+          await sendMessage({ text: message })
+        }}
+      >
+        <Input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="Or ask me a question about my work..."
+          aria-label="Chat message"
+        />
+        <Button type="submit" disabled={status === "streaming" || !draft.trim()}>
+          Send
+        </Button>
+      </form>
+    </div>
+  )
+}
+
 function EditableField({
   editable,
   value,
   onSave,
   render,
   multiline,
+  align = "left",
 }: {
   editable: boolean
   value: string
   onSave: (next: string) => void | Promise<void>
   render: (value: string) => React.ReactNode
   multiline?: boolean
+  align?: "left" | "center"
 }) {
   const [open, setOpen] = React.useState(false)
   const [draft, setDraft] = React.useState(value)
@@ -381,7 +451,10 @@ function EditableField({
     <>
       <button
         type="button"
-        className="group w-full rounded-md text-left transition-colors hover:bg-muted/40"
+        className={[
+          "group w-full rounded-md transition-colors hover:bg-muted/40",
+          align === "center" ? "text-center" : "text-left",
+        ].join(" ")}
         onClick={() => setOpen(true)}
       >
         <span className="relative inline-block w-full">
