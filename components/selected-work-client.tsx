@@ -9,17 +9,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
-type Content = Awaited<ReturnType<typeof import("@/lib/portfolio-content").getPortfolioContent>>
+type Content = NonNullable<Awaited<ReturnType<typeof import("@/lib/portfolio-content").getPortfolioContent>>>
 
 export function SelectedWorkClient({ initialContent, slug }: { initialContent: Content; slug: string }) {
-  const [content, setContent] = React.useState(initialContent)
+  const [content, setContent] = React.useState<Content | null>(initialContent ?? null)
   const [editable, setEditable] = React.useState(false)
   const [unlockCount, setUnlockCount] = React.useState(0)
   const [password, setPassword] = React.useState("")
   const [saving, setSaving] = React.useState(false)
 
-  const work = content.selectedWork.items.find((item) => item.slug === slug)
-  const workIndex = content.selectedWork.items.findIndex((item) => item.slug === slug)
+  const work = content?.selectedWork.items.find((item) => item.slug === slug)
+  const workIndex = content?.selectedWork.items.findIndex((item) => item.slug === slug) ?? -1
 
   React.useEffect(() => {
     fetch("/api/content")
@@ -31,7 +31,7 @@ export function SelectedWorkClient({ initialContent, slug }: { initialContent: C
       .catch(() => undefined)
   }, [])
 
-  if (!work) return null
+  if (!content || !work) return null
 
   async function saveContent(next: Content) {
     setSaving(true)
@@ -61,6 +61,7 @@ export function SelectedWorkClient({ initialContent, slug }: { initialContent: C
   }
 
   function updateSelectedWork(patch: Partial<typeof work>) {
+    if (!content || workIndex < 0) return
     const nextItems = content.selectedWork.items.map((item, index) => (index === workIndex ? { ...item, ...patch } : item))
     saveContent({ ...content, selectedWork: { ...content.selectedWork, items: nextItems } })
   }
@@ -84,7 +85,7 @@ export function SelectedWorkClient({ initialContent, slug }: { initialContent: C
               <div className="flex-1 space-y-3">
                 <p className="text-sm text-muted-foreground">Enter the superuser password.</p>
                 <div className="flex gap-2">
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
+                  <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Access code" />
                   <Button onClick={unlock}>Unlock</Button>
                 </div>
               </div>

@@ -12,15 +12,17 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { SelectedWorkCard } from "@/components/selected-work-card"
+import { toast } from "@/hooks/use-toast"
 
-type Content = Awaited<ReturnType<typeof import("@/lib/portfolio-content").getPortfolioContent>>
+type Content = NonNullable<Awaited<ReturnType<typeof import("@/lib/portfolio-content").getPortfolioContent>>>
 
-export function HomeClient({ initialContent }: { initialContent: Content }) {
-  const [content, setContent] = React.useState(initialContent)
+export function HomeClient({ initialContent }: { initialContent: Content | null }) {
+  const [content, setContent] = React.useState<Content | null>(initialContent ?? null)
   const [editable, setEditable] = React.useState(false)
   const [unlockCount, setUnlockCount] = React.useState(0)
   const [password, setPassword] = React.useState("")
   const [saving, setSaving] = React.useState(false)
+  const resumeInputRef = React.useRef<HTMLInputElement | null>(null)
 
   React.useEffect(() => {
     fetch("/api/content")
@@ -47,6 +49,45 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
     }
   }
 
+  async function handleResumeClick() {
+    if (editable) {
+      resumeInputRef.current?.click()
+      return
+    }
+
+    try {
+      const res = await fetch("/api/resume", { method: "HEAD", cache: "no-store" })
+      if (!res.ok || res.status === 204) {
+        toast({
+          variant: "destructive",
+          title: "Resume unavailable",
+          description: "Something went wrong while loading the resume.",
+        })
+        return
+      }
+
+      window.open("/api/resume", "_blank", "noopener,noreferrer")
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Resume unavailable",
+        description: "Something went wrong while loading the resume.",
+      })
+    }
+  }
+
+  async function handleResumeUpload(file: File | null) {
+    if (!file) return
+    const formData = new FormData()
+    formData.set("file", file)
+    formData.set("contentType", file.type || "application/pdf")
+    formData.set("filename", file.name || "resume.pdf")
+    await fetch("/api/resume", {
+      method: "POST",
+      body: formData,
+    })
+  }
+
   async function unlock() {
     const res = await fetch("/api/superuser/auth", {
       method: "POST",
@@ -60,19 +101,24 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
   }
 
   function updateExperience(index: number, patch: Partial<Content["about"]["experience"][number]>) {
-    const nextExperience = content.about.experience.map((item, i) => (i === index ? { ...item, ...patch } : item))
-    saveContent({ ...content, about: { ...content.about, experience: nextExperience } })
+    if (!portfolio) return
+    const nextExperience = portfolio.about.experience.map((item, i) => (i === index ? { ...item, ...patch } : item))
+    saveContent({ ...portfolio, about: { ...portfolio.about, experience: nextExperience } })
   }
+
+  const portfolio = content
+
+  if (!portfolio) return null
 
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between">
           <div className="font-bold text-xl">
-            <Link href="/">{content.site.name}</Link>
+            <Link href="/">{portfolio.site.name}</Link>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm">
-            {content.nav.map((item) => (
+            {portfolio.nav.map((item) => (
               <Link key={item.href} href={item.href} className="transition-colors hover:text-foreground/80">
                 {item.label}
               </Link>
@@ -118,20 +164,30 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
                 <Sparkles className="h-5 w-5" />
               </Button>
             )}
-            <Link href={content.site.githubUrl} target="_blank" rel="noopener noreferrer">
+            <Link href={portfolio.site.githubUrl} target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="icon">
                 <Github className="h-5 w-5" />
                 <span className="sr-only">GitHub</span>
               </Button>
             </Link>
-            <Link href={content.site.linkedinUrl} target="_blank" rel="noopener noreferrer">
+            <Link href={portfolio.site.linkedinUrl} target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="icon">
                 <Linkedin className="h-5 w-5" />
                 <span className="sr-only">LinkedIn</span>
               </Button>
             </Link>
-            <Button asChild>
-              <Link href={content.site.resumeUrl}>{content.site.resumeLabel}</Link>
+            <input
+              ref={resumeInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(event) => {
+                void handleResumeUpload(event.target.files?.[0] ?? null)
+                event.currentTarget.value = ""
+              }}
+            />
+            <Button onClick={() => void handleResumeClick()} disabled={saving}>
+              {portfolio.site.resumeLabel}
             </Button>
           </div>
         </div>
@@ -145,10 +201,10 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
             </div>
             <div className="flex-1 space-y-3">
               <p className="text-sm text-muted-foreground">Enter the superuser password.</p>
-              <div className="flex gap-2">
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" />
-                <Button onClick={unlock}>Unlock</Button>
-              </div>
+                <div className="flex gap-2">
+                  <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Access code" />
+                  <Button onClick={unlock}>Unlock</Button>
+                </div>
             </div>
           </div>
         ) : null}
@@ -156,26 +212,26 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
         <section className="flex flex-col items-center justify-center text-center py-12 md:py-24">
           <EditableField
             editable={editable}
-            value={content.hero.headline}
-            onSave={(headline) => saveContent({ ...content, hero: { ...content.hero, headline } })}
+            value={portfolio.hero.headline}
+            onSave={(headline) => saveContent({ ...portfolio, hero: { ...portfolio.hero, headline } })}
             align="center"
             render={(value) => <h1 className="mb-4 text-4xl font-bold tracking-tighter md:text-6xl">{value}</h1>}
           />
           <EditableField
             editable={editable}
-            value={content.site.role}
-            onSave={(role) => saveContent({ ...content, site: { ...content.site, role } })}
+            value={portfolio.site.role}
+            onSave={(role) => saveContent({ ...portfolio, site: { ...portfolio.site, role } })}
             align="center"
             render={(value) => <p className="mb-8 max-w-[700px] text-xl text-muted-foreground md:text-2xl">{value}</p>}
           />
           <div className="flex flex-col sm:flex-row gap-4">
             <Button size="lg" asChild>
               <Link href="#projects">
-                {content.hero.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
+                {portfolio.hero.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="#contact">{content.hero.secondaryCta}</Link>
+              <Link href="#contact">{portfolio.hero.secondaryCta}</Link>
             </Button>
           </div>
           <div className="mt-10 w-full max-w-2xl">
@@ -188,12 +244,12 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
             <div>
               <EditableField
                 editable={editable}
-                value={content.about.title}
-                onSave={(title) => saveContent({ ...content, about: { ...content.about, title } })}
+                value={portfolio.about.title}
+                onSave={(title) => saveContent({ ...portfolio, about: { ...portfolio.about, title } })}
                 render={(value) => <h2 className="text-3xl font-bold tracking-tighter mb-4">{value}</h2>}
               />
               <div className="space-y-4 text-muted-foreground">
-                {content.about.paragraphs.map((paragraph, index) => (
+                {portfolio.about.paragraphs.map((paragraph, index) => (
                   <EditableField
                     key={index}
                     editable={editable}
@@ -201,8 +257,8 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
                     multiline
                     onSave={(next) =>
                       saveContent({
-                        ...content,
-                        about: { ...content.about, paragraphs: content.about.paragraphs.map((item, i) => (i === index ? next : item)) },
+                        ...portfolio,
+                        about: { ...portfolio.about, paragraphs: portfolio.about.paragraphs.map((item, i) => (i === index ? next : item)) },
                       })
                     }
                     render={(value) => <p>{value}</p>}
@@ -213,12 +269,12 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
               <div className="mt-8">
                 <EditableField
                   editable={editable}
-                  value={content.about.experienceTitle}
-                  onSave={(experienceTitle) => saveContent({ ...content, about: { ...content.about, experienceTitle } })}
+                  value={portfolio.about.experienceTitle}
+                  onSave={(experienceTitle) => saveContent({ ...portfolio, about: { ...portfolio.about, experienceTitle } })}
                   render={(value) => <h3 className="text-xl font-semibold mb-6">{value}</h3>}
                 />
                 <div className="relative space-y-10 border-l border-border pl-8">
-                  {content.about.experience.map((item, index) => (
+                  {portfolio.about.experience.map((item, index) => (
                     <div key={`${item.company}-${item.period}`} className="relative">
                       <div className="absolute -left-[41px] top-1 h-5 w-5 rounded-full border-4 border-background bg-foreground" />
                       <div className="flex items-start justify-between gap-4">
@@ -252,7 +308,7 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
                 className="relative h-64 w-64 overflow-hidden rounded-full border-4 border-primary"
                 title="Click"
               >
-                <img src={content.about.image.src} alt={content.about.image.alt} className="h-full w-full object-cover" />
+                <img src={portfolio.about.image.src} alt={portfolio.about.image.alt} className="h-full w-full object-cover" />
               </button>
             </div>
           </div>
@@ -261,12 +317,12 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
         <section id="skills" className="py-12 md:py-24 border-t">
           <EditableField
             editable={editable}
-            value={content.skills.title}
-            onSave={(title) => saveContent({ ...content, skills: { ...content.skills, title } })}
+            value={portfolio.skills.title}
+            onSave={(title) => saveContent({ ...portfolio, skills: { ...portfolio.skills, title } })}
             render={(value) => <h2 className="text-3xl font-bold tracking-tighter mb-8 text-center">{value}</h2>}
           />
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {content.skills.groups.map((group, index) => (
+            {portfolio.skills.groups.map((group, index) => (
               <SkillCard
                 key={group.title}
                 editable={editable}
@@ -274,10 +330,10 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
                 skills={group.skills}
                 onSave={(next) =>
                   saveContent({
-                    ...content,
+                    ...portfolio,
                     skills: {
-                      ...content.skills,
-                      groups: content.skills.groups.map((item, i) => (i === index ? next : item)),
+                      ...portfolio.skills,
+                      groups: portfolio.skills.groups.map((item, i) => (i === index ? next : item)),
                     },
                   })
                 }
@@ -289,12 +345,12 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
         <section id="projects" className="py-12 md:py-24 border-t">
           <EditableField
             editable={editable}
-            value={content.selectedWork.title}
-            onSave={(title) => saveContent({ ...content, selectedWork: { ...content.selectedWork, title } })}
+            value={portfolio.selectedWork.title}
+            onSave={(title) => saveContent({ ...portfolio, selectedWork: { ...portfolio.selectedWork, title } })}
             render={(value) => <h2 className="text-3xl font-bold tracking-tighter mb-8 text-center">{value}</h2>}
           />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {content.selectedWork.items.map((project) => (
+            {portfolio.selectedWork.items.map((project) => (
               <SelectedWorkCard key={project.slug} {...project} />
             ))}
           </div>
@@ -309,30 +365,30 @@ export function HomeClient({ initialContent }: { initialContent: Content }) {
           <div className="mx-auto max-w-md text-center">
             <EditableField
               editable={editable}
-              value={content.contact.title}
-              onSave={(title) => saveContent({ ...content, contact: { ...content.contact, title } })}
+              value={portfolio.contact.title}
+              onSave={(title) => saveContent({ ...portfolio, contact: { ...portfolio.contact, title } })}
               render={(value) => <h2 className="text-3xl font-bold tracking-tighter mb-4">{value}</h2>}
             />
             <EditableField
               editable={editable}
-              value={content.contact.body}
+              value={portfolio.contact.body}
               multiline
-              onSave={(body) => saveContent({ ...content, contact: { ...content.contact, body } })}
+              onSave={(body) => saveContent({ ...portfolio, contact: { ...portfolio.contact, body } })}
               render={(value) => <p className="text-muted-foreground mb-8">{value}</p>}
             />
             <div className="flex flex-col gap-4">
               <Button className="w-full" asChild>
-                <Link href={`mailto:${content.contact.email}`}>
-                  <Mail className="mr-2 h-4 w-4" /> {content.contact.email}
+                <Link href={`mailto:${portfolio.contact.email}`}>
+                  <Mail className="mr-2 h-4 w-4" /> {portfolio.contact.email}
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" asChild>
-                <Link href={content.site.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                <Link href={portfolio.site.linkedinUrl} target="_blank" rel="noopener noreferrer">
                   <Linkedin className="mr-2 h-4 w-4" /> LinkedIn
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" asChild>
-                <Link href={content.site.githubUrl} target="_blank" rel="noopener noreferrer">
+                <Link href={portfolio.site.githubUrl} target="_blank" rel="noopener noreferrer">
                   <Github className="mr-2 h-4 w-4" /> GitHub
                 </Link>
               </Button>
