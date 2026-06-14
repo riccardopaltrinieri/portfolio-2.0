@@ -334,7 +334,7 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
             render={(value) => <h2 className="text-3xl font-bold tracking-tighter mb-8 text-center">{value}</h2>}
           />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {portfolio.selectedWork.items.map((project) => (
+            {portfolio.selectedWork.items.slice(0, 3).map((project) => (
               <SelectedWorkCard key={project.slug} {...project} />
             ))}
           </div>
