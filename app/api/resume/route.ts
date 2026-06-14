@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { readResume, resumeExists, writeResume } from "@/lib/resume-store"
-import { isAuthedRequest } from "@/lib/superuser-auth"
+import { isAuthedRequest } from "../../../lib/superuser-auth"
 
 export async function HEAD() {
   const exists = await resumeExists()

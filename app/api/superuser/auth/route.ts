@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { randomUUID } from "crypto"
 
-import { SUPERUSER_COOKIE_NAME, signSuperuserToken } from "@/lib/superuser-auth"
+import { SUPERUSER_COOKIE_NAME, signSuperuserToken } from "../../../../lib/superuser-auth"
 
 export async function POST(req: Request) {
   const { password } = (await req.json()) as { password?: string }

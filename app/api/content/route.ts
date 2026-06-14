@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 import { getPortfolioContent } from "@/lib/portfolio-content"
 import { writeContent } from "@/lib/content-store"
-import { isAuthedRequest } from "@/lib/superuser-auth"
+import { isAuthedRequest } from "../../../lib/superuser-auth"
 
 export async function GET(req: Request) {
   const content = await getPortfolioContent()
