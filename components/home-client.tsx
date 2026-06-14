@@ -126,44 +126,6 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
           </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            {editable ? (
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Lock className="h-5 w-5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Superuser mode</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground">
-                      <PencilLine className="h-4 w-4" />
-                      Edit text directly on the page, then save per section.
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={async () => {
-                        await fetch("/api/superuser/auth", { method: "DELETE" })
-                        setEditable(false)
-                      }}
-                    >
-                      Exit mode
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setUnlockCount((n) => n + 1)}
-                title="Hidden mode"
-              >
-                <Sparkles className="h-5 w-5" />
-              </Button>
-            )}
             <Link href={portfolio.site.githubUrl} target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="icon">
                 <Github className="h-5 w-5" />
