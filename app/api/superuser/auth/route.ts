@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server"
-import { createHash, randomUUID } from "crypto"
+import { randomUUID } from "crypto"
 
-const COOKIE_NAME = "portfolio_superuser"
-
-function sign(token: string) {
-  const secret = process.env.SUPERUSER_PASSWORD ?? ""
-  return createHash("sha256").update(`${token}.${secret}`).digest("hex")
-}
+import { SUPERUSER_COOKIE_NAME, signSuperuserToken } from "@/lib/superuser-auth"
 
 export async function POST(req: Request) {
   const { password } = (await req.json()) as { password?: string }
@@ -16,9 +11,9 @@ export async function POST(req: Request) {
   }
 
   const token = randomUUID()
-  const value = `${token}.${sign(token)}`
+  const value = `${token}.${signSuperuserToken(token)}`
   const res = NextResponse.json({ ok: true })
-  res.cookies.set(COOKIE_NAME, value, {
+  res.cookies.set(SUPERUSER_COOKIE_NAME, value, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -29,6 +24,6 @@ export async function POST(req: Request) {
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true })
-  res.cookies.set(COOKIE_NAME, "", { path: "/", maxAge: 0 })
+  res.cookies.set(SUPERUSER_COOKIE_NAME, "", { path: "/", maxAge: 0 })
   return res
 }

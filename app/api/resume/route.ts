@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import { readResume, resumeExists, writeResume } from "@/lib/resume-store"
+import { isAuthedRequest } from "@/lib/superuser-auth"
 
 export async function HEAD() {
   const exists = await resumeExists()
@@ -26,6 +27,10 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!isAuthedRequest(req)) {
+    return NextResponse.json({ ok: false }, { status: 401 })
+  }
+
   const formData = await req.formData()
   const file = formData.get("file")
 
