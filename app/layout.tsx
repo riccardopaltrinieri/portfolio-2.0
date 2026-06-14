@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "RickPalt | Portfolio",
   description: "Created with v0",
   generator: "v0.dev",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
 }
 
 export default function RootLayout({
