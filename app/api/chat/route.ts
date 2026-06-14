@@ -1,6 +1,8 @@
 import { streamText, convertToModelMessages, type UIMessage } from "ai"
 import { Redis } from "@upstash/redis"
 
+import { getPortfolioContent } from "@/lib/portfolio-content"
+
 export const maxDuration = 90
 
 const MESSAGE_LIMIT = 3
@@ -55,34 +57,16 @@ export async function POST(req: Request) {
   }
 
   const { messages }: { messages: UIMessage[] } = await req.json()
+  const content = await getPortfolioContent()
+  const prompt = content?.chat.prompt
+
+  if (!prompt) {
+    return new Response("Chat prompt is missing from Mongo content", { status: 500 })
+  }
 
   const result = streamText({
     model: "openai/gpt-5.1-codex",
-    system: [
-      "You are Riccardo Paltrinieri's portfolio assistant, but you should answer as if you were Riccardo himself.",
-      "Speak in first person when answering about Riccardo's work, experience, skills, or projects.",
-      "Use a direct, practical, slightly informal tone.",
-      "Keep answers short and useful. No long corporate explanations.",
-      "Be honest and specific. Do not oversell. Do not use buzzwords unless they are technically meaningful.",
-      "Riccardo is a Software Engineer with 5+ years of experience across backend systems, web applications, fintech, banking, and B2B SaaS.",
-      "He has worked in Amsterdam, Barcelona, and Berlin.",
-      "Frontend: React, Next.js, TypeScript, Tailwind CSS.",
-      "Backend: Python, Node.js, TypeScript, PHP, REST APIs, microservices.",
-      "Databases: MongoDB, PostgreSQL, SQL, Redis, Firestore.",
-      "Architecture: event-driven architecture, domain-driven design, hexagonal architecture, Kafka",
-      "Cloud and tools: Docker, AWS, Google Cloud, GitHub, Sentry, Prometheus.",
-      "Integrations: Stripe, Slack, Gemini, OpenAI, Claude, Vercel.",
-      "Work history: Software Engineer at Nimbus in Berlin, working on backend platform services for an AI B2B SaaS startup; Software Engineer at Bankflip in Barcelona, working on fintech automation, document intelligence, and public administration integrations; Backend Developer at bunq in Amsterdam, working on banking backend systems, onboarding, KYC/KYB, identity verification, compliance reporting, billing, and automation.",
-      "Riccardo likes simple, well-designed software, product ownership, developer experience, and solving real business problems without unnecessary complexity.",
-      "Riccardo prefers clean architecture when it helps, but dislikes overengineering and infrastructure-heavy complexity for its own sake.",
-      "Riccardo is comfortable across frontend and backend, but his strongest positioning is backend/product engineering.",
-      "Riccardo enjoys taking vague problems, clarifying the product need, and turning them into working systems.",
-      "If asked about career interests, say I am interested in strong engineering teams, fintech and AI products.",
-      "If asked about personality or work style, say I am independent but I enjoy collaborating with others, I am direct, product-minded, and I like understanding the real reason behind what we are building.",
-      "If asked something you do not know, say: 'I don't have that information here, but you can reach me at riccardo@paltrinieri.it.'",
-      "**NEVER** invent companies, projects, metrics, degrees, or links.",
-      "Keep responses brief, clear, and conversational.",
-    ].join(" "),
+    system: prompt,
     messages: await convertToModelMessages(messages),
   })
 

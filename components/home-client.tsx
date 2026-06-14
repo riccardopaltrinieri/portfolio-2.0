@@ -201,10 +201,16 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
             </div>
             <div className="flex-1 space-y-3">
               <p className="text-sm text-muted-foreground">Enter the superuser password.</p>
-                <div className="flex gap-2">
+              <form
+                className="flex gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void unlock()
+                }}
+              >
                   <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Access code" />
-                  <Button onClick={unlock}>Unlock</Button>
-                </div>
+                  <Button type="submit">Unlock</Button>
+              </form>
             </div>
           </div>
         ) : null}
@@ -234,8 +240,14 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
               <Link href="#contact">{portfolio.hero.secondaryCta}</Link>
             </Button>
           </div>
-          <div className="mt-10 w-full max-w-2xl">
-            <ChatAssistant />
+          <div className="mx-auto mt-10 w-full max-w-3xl">
+            <ChatAssistant
+              editable={editable}
+              prompt={portfolio.chat.prompt}
+              onSave={async (prompt) => {
+                await saveContent({ ...portfolio, chat: { ...portfolio.chat, prompt } })
+              }}
+            />
           </div>
         </section>
 
@@ -418,7 +430,15 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
   )
 }
 
-function ChatAssistant() {
+function ChatAssistant({
+  editable,
+  prompt,
+  onSave,
+}: {
+  editable: boolean
+  prompt: string
+  onSave: (prompt: string) => void | Promise<void>
+}) {
   const { messages, setMessages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
   })
@@ -437,44 +457,99 @@ function ChatAssistant() {
   }, [messages])
 
   return (
-    <div className="text-left">
-      <div ref={listRef} className="max-h-72 space-y-3 overflow-y-auto">
-        {messages.map((message: { parts: any[]; id: React.Key | null | undefined; role: string }) => {
-          const text = message.parts
-            .map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
-            .join("")
-            .trim()
+    <div className="w-full text-left">
+      {editable ? (
+        <div className="mb-4 w-full rounded-2xl border bg-card p-4">
+          <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Chat prompt</p>
+          <InlinePromptEditor prompt={prompt} onSave={onSave} />
+        </div>
+      ) : (
+        <>
+          <div ref={listRef} className="max-h-72 space-y-3 overflow-y-auto">
+            {messages.map((message: { parts: any[]; id: React.Key | null | undefined; role: string }) => {
+              const text = message.parts
+                .map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
+                .join("")
+                .trim()
 
-          return (
-            <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[85%]" : "max-w-[85%]"}>
-              <div className={[message.role === "user" ? "bg-foreground text-background" : "bg-transparent text-foreground", "rounded-2xl px-3 py-2 text-sm leading-6"].join(" ")}>
-                {text}
-              </div>
-            </div>
-          )
-        })}
-        {error ? <p className="text-sm text-destructive">Chat is unavailable right now.</p> : null}
-      </div>
+              return (
+                <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[85%]" : "max-w-[85%]"}>
+                  <div className={[message.role === "user" ? "bg-foreground text-background" : "bg-transparent text-foreground", "rounded-2xl px-3 py-2 text-sm leading-6"].join(" ")}>
+                    {text}
+                  </div>
+                </div>
+              )
+            })}
+            {error ? <p className="text-sm text-destructive">Chat is unavailable right now.</p> : null}
+          </div>
       <form
-        className="mt-4 flex gap-2"
+        className="mx-auto mt-4 flex w-full max-w-xl gap-2"
         onSubmit={async (event) => {
           event.preventDefault()
           const message = draft.trim()
-          if (!message) return
-          setDraft("")
-          await sendMessage({ text: message })
-        }}
-      >
-        <Input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Or ask me a question about my work..."
-          aria-label="Chat message"
-        />
-        <Button type="submit" disabled={status === "streaming" || !draft.trim()}>
-          Send
+              if (!message) return
+              setDraft("")
+              await sendMessage({ text: message })
+            }}
+          >
+            <Input
+              className="flex-1"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="Or ask me a question about my work..."
+              aria-label="Chat message"
+            />
+            <Button type="submit" disabled={status === "streaming" || !draft.trim()}>
+              Send
+            </Button>
+          </form>
+        </>
+      )}
+    </div>
+  )
+}
+
+function InlinePromptEditor({
+  prompt,
+  onSave,
+}: {
+  prompt: string
+  onSave: (prompt: string) => void | Promise<void>
+}) {
+  const [draft, setDraft] = React.useState(prompt)
+  const [saving, setSaving] = React.useState(false)
+
+  React.useEffect(() => {
+    setDraft(prompt)
+  }, [prompt])
+
+  return (
+    <div className="w-full space-y-3">
+      <Textarea
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        rows={10}
+        className="block min-h-40 w-full resize-y text-sm leading-6"
+        aria-label="Chat prompt"
+      />
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          size="sm"
+          disabled={saving || draft === prompt}
+          onClick={async () => {
+            setSaving(true)
+            try {
+              await onSave(draft)
+            } finally {
+              setSaving(false)
+            }
+          }}
+        >
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? "Saving..." : "Save prompt"}
         </Button>
-      </form>
+      </div>
     </div>
   )
 }

@@ -59,6 +59,9 @@ export type PortfolioContent = {
     body: string
     email: string
   }
+  chat: {
+    prompt: string
+  }
 }
 
 export async function getPortfolioContent() {
