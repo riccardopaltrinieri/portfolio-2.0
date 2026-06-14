@@ -28,7 +28,17 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
     fetch("/api/content")
       .then((res) => res.json())
       .then((data) => {
-        if (data?.content) setContent(data.content)
+        if (data?.content) {
+          setContent((prev) => {
+            if (data.prompt) {
+              return { ...data.content, chat: { ...(prev?.chat ?? {}), prompt: data.prompt } }
+            }
+            if (prev?.chat?.prompt) {
+              return { ...data.content, chat: { ...(prev.chat ?? {}), prompt: prev.chat.prompt } }
+            }
+            return data.content
+          })
+        }
         setEditable(Boolean(data?.editable))
       })
       .catch(() => undefined)
