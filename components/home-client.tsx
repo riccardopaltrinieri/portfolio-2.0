@@ -202,16 +202,16 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
             align="center"
             render={(value) => <p className="mb-8 max-w-[700px] text-xl text-muted-foreground md:text-2xl">{value}</p>}
           />
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button size="lg" asChild>
-              <Link href="#projects">
-                {portfolio.hero.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link href="#contact">{portfolio.hero.secondaryCta}</Link>
-            </Button>
-          </div>
+          {/*<div className="flex flex-col sm:flex-row gap-4">*/}
+          {/*  <Button size="lg" asChild>*/}
+          {/*    <Link href="#projects">*/}
+          {/*      {portfolio.hero.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />*/}
+          {/*    </Link>*/}
+          {/*  </Button>*/}
+          {/*  <Button size="lg" variant="outline" asChild>*/}
+          {/*    <Link href="#contact">{portfolio.hero.secondaryCta}</Link>*/}
+          {/*  </Button>*/}
+          {/*</div>*/}
           <div className="mx-auto mt-10 w-full max-w-3xl">
             <ChatAssistant
               editable={editable}
@@ -468,7 +468,7 @@ function ChatAssistant({
               className="flex-1"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="Or ask me a question about my work..."
+              placeholder="Ask me something..."
               aria-label="Chat message"
             />
             <Button type="submit" disabled={status === "streaming" || !draft.trim()}>
