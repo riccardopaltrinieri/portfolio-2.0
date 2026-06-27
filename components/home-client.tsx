@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import * as React from "react"
-import { ArrowRight, CalendarDays, Edit3, Github, Linkedin, Lock, Mail, PencilLine, Save, Sparkles } from "lucide-react"
+import { ArrowDown, CalendarDays, Edit3, Github, Linkedin, Lock, Mail, PencilLine, Save } from "lucide-react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 
@@ -16,12 +16,16 @@ import { toast } from "@/hooks/use-toast"
 
 type Content = NonNullable<Awaited<ReturnType<typeof import("@/lib/portfolio-content").getPortfolioContent>>>
 
+const DEFAULT_CHAT_INTRO =
+  "Ask any question about my work, experience, or background. I can answer about projects, skills, career history, and what I would bring to a team."
+
 export function HomeClient({ initialContent }: { initialContent: Content | null }) {
   const [content, setContent] = React.useState<Content | null>(initialContent ?? null)
   const [editable, setEditable] = React.useState(false)
   const [unlockCount, setUnlockCount] = React.useState(0)
   const [password, setPassword] = React.useState("")
   const [saving, setSaving] = React.useState(false)
+  const [isAtTop, setIsAtTop] = React.useState(true)
   const resumeInputRef = React.useRef<HTMLInputElement | null>(null)
 
   React.useEffect(() => {
@@ -43,6 +47,40 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
       })
       .catch(() => undefined)
   }, [])
+
+  React.useEffect(() => {
+    const updateScrollPosition = () => setIsAtTop(window.scrollY <= 8)
+    updateScrollPosition()
+    window.addEventListener("scroll", updateScrollPosition, { passive: true })
+    return () => window.removeEventListener("scroll", updateScrollPosition)
+  }, [])
+
+  function scrollToSection(id: string) {
+    const element = document.getElementById(id)
+    if (!element) return
+
+    const headerOffset = 64
+    const start = window.scrollY
+    const target = element.getBoundingClientRect().top + start - headerOffset
+    const distance = target - start
+    const duration = 650
+    const startedAt = performance.now()
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      window.scrollTo(0, target)
+      return
+    }
+
+    const animate = (now: number) => {
+      const progress = Math.min((now - startedAt) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      window.scrollTo(0, start + distance * eased)
+
+      if (progress < 1) requestAnimationFrame(animate)
+    }
+
+    requestAnimationFrame(animate)
+  }
 
   async function saveContent(next: Content) {
     setSaving(true)
@@ -129,7 +167,16 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             {portfolio.nav.map((item) => (
-              <Link key={item.href} href={item.href} className="transition-colors hover:text-foreground/80">
+              <Link
+                key={item.href}
+                href={item.href}
+                className="transition-colors hover:text-foreground/80"
+                onClick={(event) => {
+                  if (!item.href.startsWith("#")) return
+                  event.preventDefault()
+                  scrollToSection(item.href.slice(1))
+                }}
+              >
                 {item.label}
               </Link>
             ))}
@@ -165,7 +212,7 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
         </div>
       </header>
 
-      <main className="container py-12 md:py-24">
+      <main className="container">
         {unlockCount >= 5 && !editable ? (
           <div className="mx-auto mb-6 flex max-w-md gap-3 rounded-xl border bg-card p-4">
             <div className="mt-1">
@@ -187,35 +234,19 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
           </div>
         ) : null}
 
-        <section className="flex flex-col items-center justify-center text-center py-12 md:py-24">
-          <EditableField
-            editable={editable}
-            value={portfolio.hero.headline}
-            onSave={(headline) => saveContent({ ...portfolio, hero: { ...portfolio.hero, headline } })}
-            align="center"
-            render={(value) => <h1 className="mb-4 text-4xl font-bold tracking-tighter md:text-6xl">{value}</h1>}
-          />
-          <EditableField
-            editable={editable}
-            value={portfolio.site.role}
-            onSave={(role) => saveContent({ ...portfolio, site: { ...portfolio.site, role } })}
-            align="center"
-            render={(value) => <p className="mb-8 max-w-[700px] text-xl text-muted-foreground md:text-2xl">{value}</p>}
-          />
-          {/*<div className="flex flex-col sm:flex-row gap-4">*/}
-          {/*  <Button size="lg" asChild>*/}
-          {/*    <Link href="#projects">*/}
-          {/*      {portfolio.hero.primaryCta} <ArrowRight className="ml-2 h-4 w-4" />*/}
-          {/*    </Link>*/}
-          {/*  </Button>*/}
-          {/*  <Button size="lg" variant="outline" asChild>*/}
-          {/*    <Link href="#contact">{portfolio.hero.secondaryCta}</Link>*/}
-          {/*  </Button>*/}
-          {/*</div>*/}
-          <div className="mx-auto mt-10 w-full max-w-3xl">
+        <section className="flex min-h-[calc(100vh-4rem)] items-center py-6 md:py-10">
+          <div className="mx-auto flex max-h-[calc(100vh-7rem)] min-h-[min(680px,calc(100vh-7rem))] w-full max-w-3xl flex-col rounded-2xl bg-card p-4 md:p-5">
             <ChatAssistant
               editable={editable}
+              headline={portfolio.hero.headline}
+              role={portfolio.site.role}
+              intro={portfolio.chat.intro ?? DEFAULT_CHAT_INTRO}
+              image={portfolio.about.image}
               prompt={portfolio.chat.prompt}
+              onPortraitClick={() => setUnlockCount((n) => n + 1)}
+              onSaveHeadline={(headline) => saveContent({ ...portfolio, hero: { ...portfolio.hero, headline } })}
+              onSaveRole={(role) => saveContent({ ...portfolio, site: { ...portfolio.site, role } })}
+              onSaveIntro={(intro) => saveContent({ ...portfolio, chat: { ...portfolio.chat, intro } })}
               onSave={async (prompt) => {
                 await saveContent({ ...portfolio, chat: { ...portfolio.chat, prompt } })
               }}
@@ -223,7 +254,7 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
           </div>
         </section>
 
-        <section id="about" className="py-12 md:py-24 border-t">
+        <section id="about" className="scroll-mt-16 py-12 md:py-24 border-t">
           <div className="grid md:grid-cols-2 gap-12 items-start">
             <div>
               <EditableField
@@ -285,20 +316,10 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
                 </div>
               </div>
             </div>
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => setUnlockCount((n) => n + 1)}
-                className="relative h-64 w-64 overflow-hidden rounded-full border-4 border-primary"
-                title="Click"
-              >
-                <img src={portfolio.about.image.src} alt={portfolio.about.image.alt} className="h-full w-full object-cover" />
-              </button>
-            </div>
           </div>
         </section>
 
-        <section id="skills" className="py-12 md:py-24 border-t">
+        <section id="skills" className="scroll-mt-16 py-12 md:py-24 border-t">
           <EditableField
             editable={editable}
             value={portfolio.skills.title}
@@ -326,7 +347,7 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
           </div>
         </section>
 
-        <section id="projects" className="py-12 md:py-24 border-t">
+        <section id="projects" className="scroll-mt-16 py-12 md:py-24 border-t">
           <EditableField
             editable={editable}
             value={portfolio.selectedWork.title}
@@ -345,7 +366,7 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
           </div>
         </section>
 
-        <section id="contact" className="py-12 md:py-24 border-t">
+        <section id="contact" className="scroll-mt-16 py-12 md:py-24 border-t">
           <div className="mx-auto max-w-md text-center">
             <EditableField
               editable={editable}
@@ -381,6 +402,17 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
         </section>
       </main>
 
+      {isAtTop ? (
+        <button
+          type="button"
+          className="fixed bottom-5 left-1/2 z-40 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full bg-white text-black shadow-lg ring-1 ring-black/10 transition hover:bg-zinc-100 md:hidden"
+          aria-label="Scroll to about section"
+          onClick={() => scrollToSection("about")}
+        >
+          <ArrowDown className="h-4 w-4" />
+        </button>
+      ) : null}
+
       {editable ? (
         <button
           type="button"
@@ -404,11 +436,30 @@ export function HomeClient({ initialContent }: { initialContent: Content | null 
 
 function ChatAssistant({
   editable,
+  headline,
+  role,
+  intro,
+  image,
   prompt,
+  onPortraitClick,
+  onSaveHeadline,
+  onSaveRole,
+  onSaveIntro,
   onSave,
 }: {
   editable: boolean
+  headline: string
+  role: string
+  intro: string
+  image: {
+    src: string
+    alt: string
+  }
   prompt: string
+  onPortraitClick: () => void
+  onSaveHeadline: (headline: string) => void | Promise<void>
+  onSaveRole: (role: string) => void | Promise<void>
+  onSaveIntro: (intro: string) => void | Promise<void>
   onSave: (prompt: string) => void | Promise<void>
 }) {
   const { messages, setMessages, sendMessage, status, error } = useChat({
@@ -428,55 +479,96 @@ function ChatAssistant({
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" })
   }, [messages])
 
+  const submitDraft = async () => {
+    if (status === "streaming") return
+    const message = draft.trim()
+    if (!message) return
+    setDraft("")
+    await sendMessage({ text: message })
+  }
+
   return (
-    <div className="w-full text-left">
+    <div className="flex min-h-0 w-full flex-1 flex-col text-left">
       {editable ? (
         <div className="mb-4 w-full rounded-2xl border bg-card p-4">
           <p className="mb-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Chat prompt</p>
           <InlinePromptEditor prompt={prompt} onSave={onSave} />
         </div>
-      ) : (
-        <>
-          <div ref={listRef} className="max-h-72 space-y-3 overflow-y-auto">
-            {messages.map((message: { parts: any[]; id: React.Key | null | undefined; role: string }) => {
-              const text = message.parts
-                .map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
-                .join("")
-                .trim()
-
-              return (
-                <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[85%]" : "max-w-[85%]"}>
-                  <div className={[message.role === "user" ? "bg-foreground text-background" : "bg-transparent text-foreground", "rounded-2xl px-3 py-2 text-sm leading-6"].join(" ")}>
-                    {text}
-                  </div>
-                </div>
-              )
-            })}
-            {error ? <p className="text-sm text-destructive">Chat is unavailable right now.</p> : null}
+      ) : null}
+      <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+        <button
+          type="button"
+          onClick={onPortraitClick}
+          className="mx-auto mb-5 block h-48 w-48 shrink-0 overflow-hidden rounded-full border-2 border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800"
+          title="Click"
+        >
+          <img src={image.src} alt={image.alt} className="h-full w-full object-cover" />
+        </button>
+        <div className="max-w-[85%]">
+          <div className="rounded-2xl bg-zinc-100 px-3 py-2 text-sm leading-6 text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50">
+            <EditableField editable={editable} value={headline} onSave={onSaveHeadline} render={(value) => <>{value}</>} />
           </div>
-      <form
-        className="mx-auto mt-4 flex w-full max-w-xl gap-2"
-        onSubmit={async (event) => {
-          event.preventDefault()
-          const message = draft.trim()
-              if (!message) return
-              setDraft("")
-              await sendMessage({ text: message })
+        </div>
+        <div className="max-w-[85%]">
+          <div className="rounded-2xl bg-zinc-100 px-3 py-2 text-sm leading-6 text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50">
+            <EditableField editable={editable} value={role} onSave={onSaveRole} render={(value) => <>{value}</>} />
+          </div>
+        </div>
+        <div className="max-w-[85%]">
+          <div className="rounded-2xl bg-zinc-100 px-3 py-2 text-sm leading-6 text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50">
+            <EditableField editable={editable} value={intro} onSave={onSaveIntro} multiline render={(value) => <>{value}</>} />
+          </div>
+        </div>
+        {messages.map((message: { parts: any[]; id: React.Key | null | undefined; role: string }) => {
+          const text = message.parts
+            .map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
+            .join("")
+            .trim()
+
+          return (
+            <div key={message.id} className={message.role === "user" ? "ml-auto max-w-[85%]" : "max-w-[85%]"}>
+              <div
+                className={[
+                  message.role === "user"
+                    ? "bg-foreground text-background"
+                    : "bg-zinc-100 text-zinc-950 dark:bg-zinc-800 dark:text-zinc-50",
+                  "whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm leading-6",
+                ].join(" ")}
+              >
+                {text}
+              </div>
+            </div>
+          )
+        })}
+        {error ? <p className="text-sm text-destructive">Chat is unavailable right now.</p> : null}
+      </div>
+      {!editable ? (
+        <form
+          className="mt-4 flex w-full items-end gap-2"
+          onSubmit={async (event) => {
+            event.preventDefault()
+            await submitDraft()
+          }}
+        >
+          <Textarea
+            className="min-h-10 flex-1 resize-none text-sm leading-6"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault()
+                void submitDraft()
+              }
             }}
-          >
-            <Input
-              className="flex-1"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              placeholder="Ask me something..."
-              aria-label="Chat message"
-            />
-            <Button type="submit" disabled={status === "streaming" || !draft.trim()}>
-              Send
-            </Button>
-          </form>
-        </>
-      )}
+            placeholder="Ask me something..."
+            aria-label="Chat message"
+            rows={1}
+          />
+          <Button type="submit" disabled={status === "streaming" || !draft.trim()}>
+            Send
+          </Button>
+        </form>
+      ) : null}
     </div>
   )
 }

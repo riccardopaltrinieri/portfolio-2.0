@@ -61,6 +61,7 @@ export type PortfolioContent = {
   }
   chat: {
     prompt: string
+    intro?: string
   }
 }
 
