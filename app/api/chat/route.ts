@@ -1,4 +1,11 @@
-import { streamText, convertToModelMessages, type UIMessage } from "ai"
+import { openai } from "@ai-sdk/openai"
+import {
+  streamText,
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  toUIMessageStream,
+  type UIMessage,
+} from "ai"
 import { Redis } from "@upstash/redis"
 
 import { getPortfolioContent } from "@/lib/portfolio-content"
@@ -7,6 +14,8 @@ export const maxDuration = 90
 
 const MESSAGE_LIMIT = 3
 const LIMIT_REACHED_MESSAGE = "MESSAGE_LIMIT_REACHED"
+const CHAT_MODEL = "gpt-5.4-mini"
+const KNOWLEDGE_BASE_VECTOR_STORE_ID = process.env.OPENAI_VECTOR_STORE_ID
 
 const redis =
   process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
@@ -65,10 +74,21 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: "openai/gpt-5.1-codex",
+    model: openai.responses(CHAT_MODEL),
     system: prompt,
     messages: await convertToModelMessages(messages),
+    ...(KNOWLEDGE_BASE_VECTOR_STORE_ID
+      ? {
+        tools: {
+          knowledge_base: openai.tools.fileSearch({
+            vectorStoreIds: [KNOWLEDGE_BASE_VECTOR_STORE_ID],
+          }),
+        },
+      }
+      : {}),
   })
 
-  return result.toUIMessageStreamResponse()
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  })
 }
